@@ -1,0 +1,33 @@
+content:
+- Reading data with a readln
+- String templates
+- Integers in action
+- Relational operators
+- Declaring functions
+- Equality
+- If expression
+- Repeating blocks
+- Ranges
+- For loop and ranges
+- Introduction to MutableList
+- Work with MutableLists
+- For loop and lists
+- Working with strings
+- Getting substrings
+- Processing strings
+- Regexps
+- Multi-dimensional list
+- While loops
+- When expression
+- Jumps and returns
+- Declaring classes
+- Functional decomposition
+- Default arguments
+- Named arguments
+- Constructors
+- Member functions
+- Scopes
+- Nested and inner classes
+- Object declarations
+- Companion object
+- Enum
