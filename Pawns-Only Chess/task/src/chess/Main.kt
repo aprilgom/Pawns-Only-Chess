@@ -1,29 +1,61 @@
 package chess
 
+import java.lang.Exception
 import kotlin.math.abs
 
 object Game {
-    var pMovement = Movement(-1,-1,-1,-1,'B')
-    fun
+    fun getInput(side: Char): Movement {
+        val input = readln()
+        val validInputRegex = Regex("[a-h][1-8][a-h][1-8]")
+        try {
+            if (!input.matches(validInputRegex)) {
+                throw error("Invalid Input")
+            }
+        } catch (e: Exception) {
+            print("Invalid Input")
+        }
+        val srcY = '8' - input[1]
+        val srcX = input[0] - 'a'
+        val destY = '8' - input[3]
+        val destX = input[2] - 'a'
+        return Movement(srcY, srcX, destY, destX, side)
+    }
 }
+
 object Board {
-    private val data = MutableList<MutableList<Char>>(8){MutableList<Char>(8){' '}}
+
+    private val board = MutableList<MutableList<Char>>(8){MutableList<Char>(8){' '}}
     init{
         for (x in 0..7) {
-            data[1][x] = 'W'
-            data[6][x] = 'B'
+            board[1][x] = 'W'
+            board[6][x] = 'B'
         }
     }
+
     fun movePawn(movement: Movement) {
-        Board.data[movement.srcY][movement.srcX] = ' '
-        Board.data[movement.destY][movement.destX] = movement.side
+        try {
+            if (board[movement.srcY][movement.srcX] != movement.side) {
+                throw error(0)
+            }
+        } catch (e: Exception) {
+            print(
+                "No ${
+                when(movement.side){
+                    'W' -> "white"
+                    'B' -> "black"
+                    else -> "no side"
+                }} pawn at ${'a' + movement.srcX}${'8' - movement.srcY}"
+            )
+        }
+        board[movement.srcY][movement.srcX] = ' '
+        board[movement.destY][movement.destX] = movement.side
     }
     fun print(){
         for (y in 0..7) {
             println("  +"+"---+".repeat(8))
             print("${8 - y} |")
             for(x in 0..7){
-                print(" ${data[y][x]} |")
+                print(" ${board[y][x]} |")
             }
             print("\n")
         }
@@ -31,16 +63,38 @@ object Board {
         println("    a   b   c   d   e   f   g   h")
     }
 }
-object Rule {
-    fun checkMoveValid(movement: Movement, pMovement: Movement) {
-        val isBackward = movement.side == 'W' && movement.destY - movement.srcY > 0 ||
-                movement.side == 'B' && movement.destY - movement.srcY < 0
-        val isNotOnStartLine = movement.side == 'W' && movement.srcY != 6 ||
-                movement.side == 'B' && movement.srcY != 1
-        val isEnemyOnDest = movement.side == 'W' && Game.board[movement.destY][movement.destX] == 'B' ||
-                movement.side == 'B' && Game.board[movement.destY][movement.destX] == 'W'
-        val isEnpassant = pMovement.distY == 2 && movement.destX == pMovement.destX && (side == 'W' && prevMove.destY == movement.destY + 1 || side == 'B' && prevMove.destY == movement.destY - 1)
+
+object RuleChecker {
+    private val ruleList = mutableListOf<Rule>();
+    fun check(movement: Movement, side:Char){
+        ruleList.forEach {
+            it.check(movement, side)
+        }
     }
+    fun addRule(rule: Rule) {
+        ruleList.add(rule)
+    }
+}
+
+class Rule (val isOk: (Movement, Char) -> Boolean, val errorOp: () -> String){
+    fun check(movement: Movement, side: Char){
+        try {
+            if (isOk(movement, side))
+                throw error(0)
+        } catch (e: Exception){
+            errorOp()
+        }
+    }
+}
+
+fun checkMoveValid(movement: Movement, pMovement: Movement) {
+    val isBackward = movement.side == 'W' && movement.destY - movement.srcY > 0 ||
+            movement.side == 'B' && movement.destY - movement.srcY < 0
+    val isNotOnStartLine = movement.side == 'W' && movement.srcY != 6 ||
+            movement.side == 'B' && movement.srcY != 1
+    val isEnemyOnDest = movement.side == 'W' && Game.board[movement.destY][movement.destX] == 'B' ||
+            movement.side == 'B' && Game.board[movement.destY][movement.destX] == 'W'
+    val isEnpassant = pMovement.distY == 2 && movement.destX == pMovement.destX && (side == 'W' && prevMove.destY == movement.destY + 1 || side == 'B' && prevMove.destY == movement.destY - 1)
 }
 
 class Player (private val name: String, private val side: Char){
@@ -54,8 +108,10 @@ class Pawn(var y: Int, var x: Int, val side: Char) {
 }
 
 data class Movement(val srcY: Int, val srcX: Int, val destY: Int, val destX: Int, val side: Char){
-    val distY = abs(destY - srcY)
-    val distX = abs(destX - srcX)
+    val diffY = destY - srcY
+    val diffX = destX - srcX
+    val distY = abs(diffY)
+    val distX = abs(diffX)
 }
 
 fun main() {
@@ -102,13 +158,6 @@ fun main() {
     print("Bye!")
 }
 
-fun parseInput(input: String): List<Int>{
-    val srcY = '8' - input[1]
-    val srcX = input[0] - 'a'
-    val destY = '8' - input[3]
-    val destX = input[2] - 'a'
-    return listOf(srcY, srcX, destY, destX)
-}
 
 fun checkInputValid(input: String, prevInput: String, board: MutableList<MutableList<Char>>, side: Char): String{
     if (input == "exit") {
@@ -120,15 +169,6 @@ fun checkInputValid(input: String, prevInput: String, board: MutableList<Mutable
     val distX = Math.abs(destX - srcX)
     val pdistY = Math.abs(pdestY - psrcY)
 
-    val validInputRegex = Regex("[a-h][1-8][a-h][1-8]")
-    return when{
-        !input.matches(validInputRegex) -> "Invalid Input"
-        board[srcY][srcX] != side -> "No ${
-            when(side){
-                'W' -> "white"
-                'B' -> "black"
-                else -> "fuck"
-        }} pawn at ${input[0]}${input[1]}"
 
         !(distY in 1..2 && distX in 0..1) ||
                 isBackward ||
