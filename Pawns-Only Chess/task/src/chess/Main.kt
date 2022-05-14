@@ -3,7 +3,11 @@ package chess
 import java.lang.Exception
 import kotlin.math.abs
 
-object Game {
+class Game {
+    companion object {
+        val board: Board = Board()
+    }
+
     fun getInput(side: Char): Movement {
         val input = readln()
         val validInputRegex = Regex("[a-h][1-8][a-h][1-8]")
@@ -20,10 +24,10 @@ object Game {
         val destX = input[2] - 'a'
         return Movement(srcY, srcX, destY, destX, side)
     }
+
 }
 
-object Board {
-
+class Board {
     private val board = MutableList<MutableList<Char>>(8){MutableList<Char>(8){' '}}
     init{
         for (x in 0..7) {
@@ -31,7 +35,6 @@ object Board {
             board[6][x] = 'B'
         }
     }
-
     fun movePawn(movement: Movement) {
         try {
             if (board[movement.srcY][movement.srcX] != movement.side) {
@@ -65,15 +68,6 @@ object Board {
 }
 
 object RuleChecker {
-    private val ruleList = mutableListOf<Rule>();
-    fun check(movement: Movement, side:Char){
-        ruleList.forEach {
-            it.check(movement, side)
-        }
-    }
-    fun addRule(rule: Rule) {
-        ruleList.add(rule)
-    }
 }
 
 class Rule (val isOk: (Movement, Char) -> Boolean, val errorOp: () -> String){
@@ -87,24 +81,51 @@ class Rule (val isOk: (Movement, Char) -> Boolean, val errorOp: () -> String){
     }
 }
 
+/*
 fun checkMoveValid(movement: Movement, pMovement: Movement) {
     val isBackward = movement.side == 'W' && movement.destY - movement.srcY > 0 ||
             movement.side == 'B' && movement.destY - movement.srcY < 0
     val isNotOnStartLine = movement.side == 'W' && movement.srcY != 6 ||
             movement.side == 'B' && movement.srcY != 1
-    val isEnemyOnDest = movement.side == 'W' && Game.board[movement.destY][movement.destX] == 'B' ||
-            movement.side == 'B' && Game.board[movement.destY][movement.destX] == 'W'
+    val isEnemyOnDest = movement.side == 'W' && Board[movement.destY][movement.destX] == 'B' ||
+            movement.side == 'B' && Board[movement.destY][movement.destX] == 'W'
     val isEnpassant = pMovement.distY == 2 && movement.destX == pMovement.destX && (side == 'W' && prevMove.destY == movement.destY + 1 || side == 'B' && prevMove.destY == movement.destY - 1)
+}
+ */
+
+object PawnFactory {
+
+    private val ruleList: MutableList<Rule> = mutableListOf<Rule>()
+
+    fun addRule(rule: Rule) {
+        ruleList.add(rule)
+    }
+
+    fun createPawn(side: Char): Piece {
+        return Piece(side, ruleList)
+    }
+
+}
+
+class Piece(val side: Char,val ruleList: MutableList<Rule>) {
+
+    fun check(movement: Movement, side:Char){
+        ruleList.forEach {
+            it.check(movement, side)
+        }
+    }
+
+    fun addRule(rule: Rule) {
+        ruleList.add(rule)
+    }
+
+    fun sideEqualTo(side: Char): Boolean {
+        return this.side == side
+    }
 }
 
 class Player (private val name: String, private val side: Char){
     val pawns = MutableList<Pawn>(8){it -> Pawn(if (side == 'W') 1 else 6,it,side)}
-}
-
-class Pawn(var y: Int, var x: Int, val side: Char) {
-    init{
-        Game.board[y][x] = side
-    }
 }
 
 data class Movement(val srcY: Int, val srcX: Int, val destY: Int, val destX: Int, val side: Char){
@@ -124,7 +145,7 @@ fun main() {
     var whiteInput = ""
     var blackInput = "a0a0"
     while (true) {
-        printBoard(board)
+        Board.print()
         print("$firstName's turn:")
         whiteInput = readln()
         var whiteValidMsg = checkInputValid(whiteInput, blackInput, board, 'W')
